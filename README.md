@@ -8,11 +8,11 @@ Polya distribution](http://en.wikipedia.org/wiki/Multivariate_Polya_distribution
 The input data is expected to be a matrix one row per trial, and one column per
 category.
 
-    > a <- matrix(c(5, 4, 7, 10, 12, 15, 4, 6, 2, 39, 43, 51), nrow=2)
+    > a <- matrix(c(5, 2, 8, 10, 19, 15, 4, 7, 0, 39, 43, 81), nrow=3)
 
 The maximum likelihood estimate of the multivariate Polya parameters is returned
 by polya_optim.
 
-    > afit <- polya_optim(a)
-    > afit$par
-    [1]  2.363477  4.033356  6.164364  2.555273  5.856060 20.286586
+    > b <- polya_optim(a)
+    > b$par
+    [1]  3.878663 11.057931  2.507630 39.071530
