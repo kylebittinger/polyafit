@@ -1,0 +1,5 @@
+export(dirichlet_precision_wicker)
+export(dpolya)
+export(multibeta)
+export(multichoose)
+export(optim_polya)
