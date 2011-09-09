@@ -1,7 +1,7 @@
 # polyafit
 
-Fit a set of data to a [multivariate Polya distribution]
-(http://en.wikipedia.org/wiki/Multivariate_Polya_distribution).
+`polyafit` is an R package that provides tools to fit data to a [multivariate
+Polya distribution](http://en.wikipedia.org/wiki/Multivariate_Polya_distribution).
 
 ## Example
 
