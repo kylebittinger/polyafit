@@ -11,3 +11,5 @@ Description: This package includes functions for fitting
 Collate:
     'optim_polya.r'
     'polya.r'
+    'betabinom.r'
+    'polya_marginal.r'
