@@ -59,7 +59,7 @@ optim_polya <- function(counts) {
   }
 
   props <- t(apply(counts, 1, function (x) {x / sum(x)}))
-  approx_precision <- dirichlet_precision_wicker(props, min_value=1)
+  approx_precision <- dirichlet_precision_wicker(props, min_value=2)
   initial_params <- approx_precision * apply(props, 2, mean)
 
   results <- optim_step(initial_params)
@@ -71,6 +71,25 @@ optim_polya <- function(counts) {
       results$message)
   }
 
+  #
+  # Check for runaway parameters
+  #
+  low_alphas <- results$par < 1e-8
+  low_alpha_calls <- 0
+  while (any(low_alphas)) {
+    # Replace ultra-low parameters with some allowable value
+    message("One or more parameters is too small, re-optimizing...")
+    allowable_par <- results$par
+    allowable_par[allowable_par > 1e-8] <- 1
+    results <- optim_step(allowable_par)
+    low_alphas <- results$par < 1e-8
+    low_alpha_calls <- low_alpha_calls + 1
+    if (low_alpha_calls > 10) {
+      message("More than 10 attempts to remove parameters that are too small")
+      break
+    }
+  }
+  
   #
   # Check solution using variation of parameters
   #

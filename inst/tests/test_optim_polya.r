@@ -67,6 +67,46 @@ test_that("true max. likelihood is found for problematic dataset", {
   expect_that(op$value, equals(-936.1, tol=1))
 })
 
+test_that("proportions are in reasonable order for problematic dataset", {
+  counts <- matrix(c(
+    45, 23, 13, 3, 7, 9, 7, 0, 13, 6, 8, 2, 110, 9, 32, 
+    8, 92, 64, 73, 2, 31, 2, 6, 1, 19, 6, 196, 14, 415, 63, 61, 7, 
+    2, 5, 4, 3, 661, 214, 22, 2, 124, 61, 4, 10, 37, 16, 438, 457, 
+    59, 4, 1383, 935, 83, 118, 35, 25, 5, 2, 3, 6, 142, 9, 51, 8, 
+    737, 723, 92, 12, 47, 19, 206, 126, 444, 149, 2, 7, 54, 4, 41, 
+    11, 14, 9, 4, 2, 69, 5, 4, 3, 3, 10, 27, 8, 8, 0, 6, 0, 3, 3, 
+    130, 11, 8, 2, 8, 1, 524, 134, 19, 26, 1, 6, 7, 1, 6, 7, 64, 
+    41, 247, 179, 49, 28, 22, 1, 7, 4, 16, 7, 221, 90, 55, 12, 32, 
+    27, 8, 3, 68, 1, 13, 1, 216, 181, 53, 12, 16, 1, 6, 0, 50, 30, 
+    2, 7, 5, 2, 18, 14, 1260, 923, 11, 6, 4, 2, 8, 1, 1, 6, 72, 54, 
+    7, 0, 107, 5, 34, 10, 89, 106, 245, 98, 4, 2, 98, 52, 17, 40, 
+    22, 3, 50, 4, 131, 6, 78, 6, 1292, 714, 150, 5, 86, 6, 1862, 
+    230, 594, 53, 154, 76, 693, 473, 1988, 224, 64, 0, 11, 7, 185, 
+    50, 46, 8, 66, 89, 140, 103, 64, 52, 8, 1, 10, 3, 9, 2, 25, 40, 
+    15, 5, 19, 3, 720, 469, 247, 98, 8, 0, 641, 70, 1439, 1074, 40, 
+    1, 10, 1, 50, 2, 29, 0), nrow=2)
+  par <- optim_polya(counts)$par
+
+  # Columns with zeros in second row
+  # Col   4 (x =  7)
+  # Col  47 (x =  8)
+  # Col  48 (x =  6)
+  # Col  73 (x =  6)
+  # Col  84 (x =  7)
+  # Col 104 (x = 64)
+  # Col 119 (x =  8)
+  # Col 125 (x = 29)
+  
+  expect_that(par[104] > par[125], is_true()) # x=64 > x=29 
+  expect_that(par[125] > par[ 47], is_true()) # x=29 > x=8
+  expect_that(par[ 47] > par[  4], is_true()) # x=8 > x=7
+  expect_that(par[  4] > par[ 48], is_true()) # x=7 > x=6
+  expect_that(par[ 48], equals(par[ 73])) # x=6 matches
+  expect_that(par[  4], equals(par[ 84])) # x=7 matches
+  expect_that(par[ 47], equals(par[119])) # x=8 matches
+})
+
+
 test_that("repeated columns of counts have equal parameter estimates", {
   counts <- matrix(
     c(5, 20, 78, 1, 20,
