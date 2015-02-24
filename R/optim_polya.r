@@ -42,7 +42,7 @@ dirichlet_precision_wicker <- function(props, min_prop=1e-10, min_value=0.1) {
 #'   per trial.
 #' @return The result of the final call to optim().
 #' @export
-optim_polya <- function(counts) {
+optim_polya <- function(counts, check_runaway=TRUE) {
 
   polya_model <- function(alphas) {
     sum(apply(counts, 1, dpolya, alphas))
@@ -59,7 +59,7 @@ optim_polya <- function(counts) {
   }
 
   props <- t(apply(counts, 1, function (x) {x / sum(x)}))
-  approx_precision <- dirichlet_precision_wicker(props, min_value=2)
+  approx_precision <- dirichlet_precision_wicker(props, min_value=1)
   initial_params <- approx_precision * apply(props, 2, mean)
 
   results <- optim_step(initial_params)
@@ -74,6 +74,8 @@ optim_polya <- function(counts) {
   #
   # Check for runaway parameters
   #
+  if (check_runaway) {
+
   low_alphas <- results$par < 1e-8
   low_alpha_calls <- 0
   while (any(low_alphas)) {
@@ -88,6 +90,8 @@ optim_polya <- function(counts) {
       message("More than 10 attempts to remove parameters that are too small")
       break
     }
+  }
+
   }
   
   #
@@ -112,4 +116,113 @@ optim_polya <- function(counts) {
     }
   }
   results
+
+}
+
+#' Find MLE of a multivariate Polya distribution, optimizing mean and precision separately
+#'
+#' @param counts A matrix of observed data, one column per category, one row
+#'   per trial.
+#' @param max_iter Maximum number of iterations
+#' @return The result of the final call to optim().
+#' @export
+optim_polya_pingpong <- function(counts, max_iter=100, tol=1e-5, max_a0=20) {
+  alphas <- colSums(counts)
+  a0 <- sum(alphas)
+  if (a0 > max_a0) {
+    alphas <- alphas * (max_a0 / a0)
+  }
+  # print(alphas)
+  n <- 1
+
+  while (n <= max_iter) {
+    a0 <- sum(alphas)
+    r1 <- optim_polya_precision(counts, alphas)
+    
+    # Only allow precision to increase by factor of 10
+    r1_a0 <- sum(r1$par)
+    max_step_a0 <- 10 * a0
+    if (r1_a0 > max_step_a0) {
+      r1$par <- r1$par * max_step_a0 / r1_a0
+    }
+    # print(r1$par)
+
+    r2 <- optim_polya_proportions(counts, r1$par)
+    if (isTRUE(all.equal(alphas, r2$par, tolerance=tol))) {
+      r2$pings <- n
+      return(r2)
+    }
+    
+    alphas <- r2$par
+    n <- n + 1
+  }
+
+  message("Could not find stable result in ", max_iter, " iterations.")
+  r2$pings <- n
+  r2
+}
+
+optim_polya_precision <- function(counts, alphas) {
+  a0 <- sum(alphas)
+  ps <- alphas / a0
+  
+  polya_model <- function(x) {
+    alphas <- x * ps
+    sum(apply(counts, 1, dpolya, alphas))
+  }
+  
+  res <- optim(
+    a0,
+    polya_model,
+    method="L-BFGS-B",
+    lower=1e-10,
+    upper=1e10,
+    control=list(maxit=1000, fnscale=-1, trace=0))
+  
+  res$par <- res$par * ps
+  res
+}
+
+optim_polya_proportions <- function(counts, alphas) {
+  a0 <- sum(alphas)
+  ps <- alphas / a0
+  ps_alt <- additive_logistic_transform(ps)
+
+  polya_model <- function(x) {
+    alphas <- a0 * inverse_additive_logistic_transform(x)
+    sum(apply(counts, 1, dpolya, alphas))
+  }
+
+  res <- optim(
+    ps_alt,
+    polya_model,
+    method="L-BFGS-B",
+    lower=1e-10,
+    upper=1e10,
+    control=list(maxit=1000, fnscale=-1, trace=0))
+
+#   if (any(res$par < 1e-8)) {
+#     p2 <- res$par
+#     p2[p2 < 1e-8] <- 1
+#     res <- optim(
+#       p2,
+#       polya_model,
+#       method="L-BFGS-B",
+#       lower=1e-10,
+#       upper=1e10,
+#       control=list(maxit=1000, fnscale=-1, trace=0))
+#   }
+
+  res$par <- a0 * inverse_additive_logistic_transform(res$par)
+  res
+}
+
+additive_logistic_transform <- function(xs) {
+  # Log ratios to first element
+  log(tail(xs, -1)) - log(xs[1])
+}
+
+inverse_additive_logistic_transform <- function(xs) {
+  xs <- c(1, exp(xs))
+  xs / sum(xs)
 }

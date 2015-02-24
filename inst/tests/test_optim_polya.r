@@ -117,6 +117,16 @@ test_that("repeated columns of counts have equal parameter estimates", {
   expect_that(op$par[2], equals(op$par[5], tol=0.01))
 })
 
+test_that("repeated columns of counts have equal parameter estimates for pingpong method", {
+  counts <- matrix(
+    c(5, 20, 78, 1, 20,
+      8,  4, 65, 3,  4),
+    nrow=2, byrow=TRUE)
+  op <- optim_polya_pingpong(counts)
+  # columns 2 and 5 are identical
+  expect_that(op$par[2], equals(op$par[5], tol=0.01))
+})
+
 test_that("optimization works for single row of observations", {
   counts <- matrix(rep(1, 6), nrow=1)
   op <- optim_polya(counts)
