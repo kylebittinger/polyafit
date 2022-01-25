@@ -21,6 +21,7 @@ knitr::opts_chunk$set(
 
 `polyafit` is an R package that provides tools to fit count data to a
 [Dirichlet-multinomial distribution](https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution).
+
 This distribution is sometimes called the multivariate Pólya distribution, from
 which the package name is derived. The package was created specifically for
 16S rRNA marker gene sequence data from the human microbiome, but in principle
@@ -52,14 +53,20 @@ we can use the full set of features to estimate the amount that feature
 proportions vary between samples.
 
 First, we'll generate data for both samples using the same underlying
-distribution.  We will randomly generate some proportions using the 
-Chi-Squared distribution.  The numbers won't add to 1, so we'll use a
-convenience function to divide by the sum.
+distribution.  We will randomly generate one set of proportions, using the
+chi-squared distribution.  While we're at it, we'll create a convenience
+function to turn counts into proportions of the whole.
 
 ```{r}
 as_proportion <- function (x) x / sum(x)
 set.seed(1)
 example_props <- as_proportion(rchisq(50, 2))
+```
+
+Here are the proportions for our example.
+
+```{r}
+example_props
 ```
 
 Now, we'll use a multinomial distribution to draw two samples with the same
@@ -88,7 +95,7 @@ oral_cts <- oral_cts[keep]
 Run an outlier analysis on the counts.  Here, the features all come from the
 same underlying distribution, and we expect to see no outliers.
 
-```{r}
+```{r no-outlier}
 tibble(Lung = lung_cts, Oral = oral_cts) %>%
   mutate(across(everything(), as_proportion)) %>%
   ggplot(aes(y=Lung, x=Oral)) +
@@ -128,7 +135,7 @@ feature.
 lung_cts[4] <- 150
 ```
 
-```{r}
+```{r one-outlier}
 tibble(Lung = lung_cts, Oral = oral_cts) %>%
   mutate(across(everything(), as_proportion)) %>%
   ggplot(aes(y=Lung, x=Oral)) +

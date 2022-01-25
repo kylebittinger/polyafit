@@ -9,6 +9,7 @@
 `polyafit` is an R package that provides tools to fit count data to a
 [Dirichlet-multinomial
 distribution](https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution).
+
 This distribution is sometimes called the multivariate Pólya
 distribution, from which the package name is derived. The package was
 created specifically for 16S rRNA marker gene sequence data from the
@@ -37,14 +38,30 @@ distribution, so we can use the full set of features to estimate the
 amount that feature proportions vary between samples.
 
 First, we’ll generate data for both samples using the same underlying
-distribution. We will randomly generate some proportions using the
-Chi-Squared distribution. The numbers won’t add to 1, so we’ll use a
-convenience function to divide by the sum.
+distribution. We will randomly generate one set of proportions, using
+the chi-squared distribution. While we’re at it, we’ll create a
+convenience function to turn counts into proportions of the whole.
 
 ``` r
 as_proportion <- function (x) x / sum(x)
 set.seed(1)
 example_props <- as_proportion(rchisq(50, 2))
+```
+
+Here are the proportions for our example.
+
+``` r
+example_props
+#>  [1] 0.0036054870 0.0437470360 0.0419368924 0.0194327787 0.0284119292
+#>  [6] 0.0269201901 0.0230080754 0.0071433596 0.0021989487 0.0036533656
+#> [11] 0.0072231209 0.0108933350 0.0015849072 0.0290335645 0.0234289847
+#> [16] 0.0316283780 0.0280271800 0.0128776484 0.0280507550 0.0363120230
+#> [21] 0.0030392395 0.0050908112 0.0080693898 0.0099922624 0.0033978652
+#> [26] 0.0195615124 0.0056335822 0.0367273382 0.0275453651 0.0090736271
+#> [31] 0.0053704580 0.0225681156 0.0030577414 0.0874843327 0.0190829652
+#> [36] 0.0037387617 0.0022252636 0.0471003005 0.0669509922 0.0063688813
+#> [41] 0.0093611213 0.0109841145 0.0097945730 0.0026154365 0.0577769111
+#> [46] 0.0747475207 0.0207478309 0.0028817161 0.0097441945 0.0001498167
 ```
 
 Now, we’ll use a multinomial distribution to draw two samples with the
@@ -87,7 +104,7 @@ tibble(Lung = lung_cts, Oral = oral_cts) %>%
   coord_equal()
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-no-outlier-1.png" width="100%" />
 
 Raw p-values for each feature. All p-values are &gt; 0.05.
 
@@ -138,7 +155,7 @@ tibble(Lung = lung_cts, Oral = oral_cts) %>%
   coord_equal()
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+<img src="man/figures/README-one-outlier-1.png" width="100%" />
 
 Doing the same analysis, we can see that the p-value for the 4th feature
 is very very low (&lt;&lt; 0.05).
