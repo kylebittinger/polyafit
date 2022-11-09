@@ -10,26 +10,18 @@ rdirichlet <- function(n, alpha) {
   x / as.vector(sm)
 }
 
-
-context("dirichlet_precision_wicker")
-
 test_that("estimated precision is close to results in paper, Fig. 1", {
-  alphas <- c(0.05, 0.1, 0.15, 0.2)
-  true_precision <- sum(alphas)
-  props <- rdirichlet(100, alphas)
-  est_precision <- dirichlet_precision_wicker(props)
-  # median and tolerance estimated from paper
-  expect_that(est_precision - true_precision, equals(-0.3, tol=0.5))
+  alphas <- c(0.05, 0.1, 0.15, 0.2) # true precision = 0.5
+  set.seed(1)
+  props <- rdirichlet(5, alphas)
+  expect_equal(dirichlet_precision_wicker(props), 0.52, tolerance = 0.1)
 })
 
 test_that("dirichlet precision estimate works for single vector" ,{
   props <- c(0.1, 0.2, 0.6, 0.1)
   est_precision <- dirichlet_precision_wicker(props, min_value=-1e10)
-  expect_that(est_precision, equals(0, tol=0.01))
+  expect_equal(est_precision, 0, tolerance = 0.01)
 })
-
-
-context("optim_polya")
 
 test_that("optimized parameters are good fit to those of input data", {
   alphas <- c(1.2, 3.3, 10.1, 0.5, 2.7)
@@ -42,10 +34,10 @@ test_that("optimized parameters are good fit to those of input data", {
   optim_error <- optim_fit$coefficients[2, 2]
   optim_pval <- optim_fit$coefficients[2, 4]
   optim_intercept <- optim_fit$coefficients[1, 1]
-  expect_that(optim_slope, equals(1, tol=0.5))
-  expect_that(optim_error, equals(0, tol=0.1))
-  expect_that(optim_pval, equals(0, tol=0.05))
-  expect_that(optim_intercept, equals(0, tol=0.5))
+  expect_equal(optim_slope, 1, tolerance = 0.5)
+  expect_equal(optim_error, 0, tolerance = 0.1)
+  expect_equal(optim_pval, 0, tolerance = 0.05)
+  expect_equal(optim_intercept, 0, tolerance = 0.5)
 })
 
 test_that("true max. likelihood is found for problematic dataset", {
@@ -64,7 +56,7 @@ test_that("true max. likelihood is found for problematic dataset", {
     3, 1, 34, 6, 72, 4), nrow=2, byrow=TRUE)
   op <- optim_polya(counts)
   # single call to optim() will find max likelihood of -1024.34
-  expect_that(op$value, equals(-936.1, tol=1))
+  expect_equal(op$value, -936.1, tolerance = 1)
 })
 
 test_that("proportions are in reasonable order for problematic dataset", {
@@ -97,13 +89,13 @@ test_that("proportions are in reasonable order for problematic dataset", {
   # Col 119 (x =  8)
   # Col 125 (x = 29)
   
-  expect_that(par[104] > par[125], is_true()) # x=64 > x=29 
-  expect_that(par[125] > par[ 47], is_true()) # x=29 > x=8
-  expect_that(par[ 47] > par[  4], is_true()) # x=8 > x=7
-  expect_that(par[  4] > par[ 48], is_true()) # x=7 > x=6
-  expect_that(par[ 48], equals(par[ 73])) # x=6 matches
-  expect_that(par[  4], equals(par[ 84])) # x=7 matches
-  expect_that(par[ 47], equals(par[119])) # x=8 matches
+  expect_true(par[104] > par[125]) # x=64 > x=29
+  expect_true(par[125] > par[ 47]) # x=29 > x=8
+  expect_true(par[ 47] > par[  4]) # x=8 > x=7
+  expect_true(par[  4] > par[ 48]) # x=7 > x=6
+  expect_equal(par[ 48], par[ 73], tolerance = 0.01) # x=6 matches
+  expect_equal(par[  4], par[ 84], tolerance = 0.01) # x=7 matches
+  expect_equal(par[ 47], par[119], tolerance = 0.01) # x=8 matches
 })
 
 
@@ -114,7 +106,7 @@ test_that("repeated columns of counts have equal parameter estimates", {
     nrow=2, byrow=TRUE)
   op <- optim_polya(counts)
   # columns 2 and 5 are identical
-  expect_that(op$par[2], equals(op$par[5], tol=0.01))
+  expect_equal(op$par[2], op$par[5], tolerance = 0.01)
 })
 
 test_that("repeated columns of counts have equal parameter estimates for pingpong method", {
@@ -124,12 +116,12 @@ test_that("repeated columns of counts have equal parameter estimates for pingpon
     nrow=2, byrow=TRUE)
   op <- optim_polya_pingpong(counts)
   # columns 2 and 5 are identical
-  expect_that(op$par[2], equals(op$par[5], tol=0.01))
+  expect_equal(op$par[2], op$par[5], tolerance = 0.01)
 })
 
 test_that("optimization works for single row of observations", {
   counts <- matrix(rep(1, 6), nrow=1)
   op <- optim_polya(counts)
   # Large tolerance essentially tests for upper bound of 19,999
-  expect_that(op$par[1], equals(10000, tol=9999))
+  expect_equal(op$par[1], 10000, tolerance = 9999)
 })

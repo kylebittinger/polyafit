@@ -13,3 +13,6 @@ Collate:
     'polya.r'
     'betabinom.r'
     'polya_marginal.r'
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
