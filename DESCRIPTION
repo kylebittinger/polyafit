@@ -8,11 +8,8 @@ Author: Kyle Bittinger <kylebittinger@gmail.com>
 Maintainer: Kyle Bittinger <kylebittinger@gmail.com>
 Description: This package includes functions for fitting
     observed data to a multivariate Polya distribution.
-Collate:
-    'optim_polya.r'
-    'polya.r'
-    'betabinom.r'
-    'polya_marginal.r'
+Encoding: UTF-8
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+RoxygenNote: 7.2.1
