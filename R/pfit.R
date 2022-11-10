@@ -60,3 +60,30 @@ make_rownames <- function (df, rownames_in = 1) {
   }
   df
 }
+
+#' Test features for enrichment
+#' @param p A \code{pfit} object
+#' @return A data frame with three columns:
+#'   \item{observation_idx}{The index of the observation, i.e. the row in the
+#'     input data.}
+#'   \item{feature_idx}{The index of the feature, i.e. the column in the input
+#'     data.}
+#'   \item{p_value}{The p-value for feature enrichment against a null
+#'     hypothesis of all features arising from a single Dirichlet-Multinomial
+#'     distribution.}
+#' @export
+pfit_enrichment <- function (p) {
+  get_pval <- function (idx) {
+    x <- p$data[idx,p$is_included]
+    cdf_val <- ppolya_marginal(x, p$parameters, log.p = FALSE)
+    1 - cdf_val
+  }
+  feature_idx = which(p$is_included)
+  names(feature_idx) <- NULL
+  tibble::tibble(observation_idx = seq_len(nrow(p$data))) %>%
+    dplyr::group_by(observation_idx) %>%
+    dplyr::summarise(
+      feature_idx = feature_idx,
+      p_value = get_pval(observation_idx),
+      .groups = "drop")
+}
