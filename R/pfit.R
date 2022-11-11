@@ -5,6 +5,13 @@
 #' @param min_counts Minimum number of observed counts for a feature to be
 #'   included in the fit
 #' @param ... Additional arguments passed to other methods
+#' @return An object of class "pfit", with the following attributes:
+#'   \item{data}{The data matrix. Row and column names will be created
+#'     automatically if the original data matrix lacked them.}
+#'   \item{is_included}{Boolean vector indicating if the feature was included
+#'     in the model.}
+#'   \item{params}{Best-fit model parameters.}
+#'   \item{theta}{The overdispersion parameter, \code{1 / sum(params)}.}
 #' @export
 pfit <- function (x, min_counts = 5, ...) {
   UseMethod("pfit")
@@ -14,7 +21,7 @@ pfit <- function (x, min_counts = 5, ...) {
 #' @examples
 #' x <- matrix(c(56, 42, 122, 100, 8, 15, 21, 14, 82, 98), nrow = 2)
 #' p <- pfit(x)
-#' p$par
+#' p$params
 #' p$theta
 #' @export
 pfit.matrix <- function (x, min_counts = 5) {
@@ -30,7 +37,6 @@ pfit.matrix <- function (x, min_counts = 5) {
   theta <- 1 / sum(params)
   obj <- list(
     data = x,
-    min_counts = min_counts,
     is_included = is_included,
     params = params,
     theta = theta)

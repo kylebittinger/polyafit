@@ -26,12 +26,21 @@ for the data. Can be specified as an integer index or with the column
 name in quotes. Set to \code{NULL} to use the existing rownames of the
 data frame.}
 }
+\value{
+An object of class "pfit", with the following attributes:
+  \item{data}{The data matrix. Row and column names will be created
+    automatically if the original data matrix lacked them.}
+  \item{is_included}{Boolean vector indicating if the feature was included
+    in the model.}
+  \item{params}{Best-fit model parameters.}
+  \item{theta}{The overdispersion parameter, \code{1 / sum(params)}.}
+}
 \description{
 S3 interface to polyafit
 }
 \examples{
 x <- matrix(c(56, 42, 122, 100, 8, 15, 21, 14, 82, 98), nrow = 2)
 p <- pfit(x)
-p$par
+p$params
 p$theta
 }
