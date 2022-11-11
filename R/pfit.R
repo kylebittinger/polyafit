@@ -18,6 +18,12 @@ pfit <- function (x, min_counts = 5, ...) {
 #' p$theta
 #' @export
 pfit.matrix <- function (x, min_counts = 5) {
+  if (is.null(rownames(x))) {
+    rownames(x) <- paste0("observation", seq_len(nrow(x)))
+  }
+  if (is.null(colnames(x))) {
+    colnames(x) <- paste0("feature", seq_len(ncol(x)))
+  }
   is_included <- colSums(x) >= min_counts
   fitobj <- optim_polya(x[,is_included])
   params <- fitobj$par
@@ -26,7 +32,7 @@ pfit.matrix <- function (x, min_counts = 5) {
     data = x,
     min_counts = min_counts,
     is_included = is_included,
-    parameters = params,
+    params = params,
     theta = theta)
   class(obj) <- "pfit"
   obj
@@ -62,28 +68,25 @@ make_rownames <- function (df, rownames_in = 1) {
 }
 
 #' Test features for enrichment
+#'
+#' Tests each feature for enrichment. The null hypothesis is that all the
+#' features across all observations arise from a single Dirichlet-Multinomial
+#' distribution.
+#'
 #' @param p A \code{pfit} object
-#' @return A data frame with three columns:
-#'   \item{observation_idx}{The index of the observation, i.e. the row in the
-#'     input data.}
-#'   \item{feature_idx}{The index of the feature, i.e. the column in the input
-#'     data.}
-#'   \item{p_value}{The p-value for feature enrichment against a null
-#'     hypothesis of all features arising from a single Dirichlet-Multinomial
-#'     distribution.}
+#' @return A data frame with three columns, giving the observation, the
+#'   feature, and the p-value for enrichment.
 #' @export
-pfit_enrichment <- function (p) {
-  get_pval <- function (idx) {
-    x <- p$data[idx,p$is_included]
-    cdf_val <- ppolya_marginal(x, p$parameters, log.p = FALSE)
-    1 - cdf_val
-  }
-  feature_idx = which(p$is_included)
-  names(feature_idx) <- NULL
-  tibble::tibble(observation_idx = seq_len(nrow(p$data))) %>%
-    dplyr::group_by(observation_idx) %>%
-    dplyr::summarise(
-      feature_idx = feature_idx,
-      p_value = get_pval(observation_idx),
-      .groups = "drop")
+feature_enrichment <- function (p) {
+  p$data %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column("observation") %>%
+    tidyr::pivot_longer(
+      cols = -observation, names_to = "feature", values_to = "counts") %>%
+    dplyr::group_by(observation) %>%
+    dplyr::filter(p$is_included) %>%
+    dplyr::mutate(
+      p.value = 1 - ppolya_marginal(counts, p$params, log.p = FALSE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(observation, feature, p.value)
 }
