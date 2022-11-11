@@ -90,3 +90,31 @@ feature_enrichment <- function (p) {
     dplyr::ungroup() %>%
     dplyr::select(observation, feature, p.value)
 }
+
+#' Plot a \code{pfit} object
+#' @param p A \code{pfit} object
+#' @return A ggplot object
+plot.pfit <- function (p) {
+  ref_observation <- rownames(p$data)[1]
+  props <- sweep(p$data, 1, rowSums(p$data), "/")
+  props <- props[,p$is_included]
+  rownames(props)[1] <- "ref_prop"
+  lower_limit <- min(props) / 2
+  props %>%
+    t() %>% # each row is a feature
+    as.data.frame() %>%
+    tibble::rownames_to_column(var = "feature") %>%
+    tidyr::pivot_longer(
+      cols = -c(feature, ref_prop),
+      names_to = "observation", values_to = "prop") %>%
+    ggplot2::ggplot() +
+    ggplot2::geom_abline(
+      slope = 1, intercept = 0, linetype = "dashed", color = "#333333") +
+    ggplot2::geom_point(ggplot2::aes(x = ref_prop, y = prop)) +
+    ggplot2::facet_wrap(~ observation) +
+    ggplot2::scale_x_log10(limits = c(lower_limit, 1)) +
+    ggplot2::scale_y_log10(limits = c(lower_limit, 1)) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(
+      x = paste("Proportion in", ref_observation), y = "Proportion in other")
+}
