@@ -2,6 +2,7 @@
 
 S3method(pfit,data.frame)
 S3method(pfit,matrix)
+S3method(plot,pfit)
 export("%>%")
 export(dbetabinom)
 export(dirichlet_precision_wicker)

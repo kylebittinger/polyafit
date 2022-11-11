@@ -94,6 +94,7 @@ feature_enrichment <- function (p) {
 #' Plot a \code{pfit} object
 #' @param p A \code{pfit} object
 #' @return A ggplot object
+#' @export
 plot.pfit <- function (p) {
   ref_observation <- rownames(p$data)[1]
   props <- sweep(p$data, 1, rowSums(p$data), "/")
