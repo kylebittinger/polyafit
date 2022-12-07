@@ -16,9 +16,11 @@ ppolya_marginal <- function(x, alphas, log.p=TRUE) {
 ppolya_apply <- function(x, alphas, fcn, ...) {
   sum_a <- sum(alphas)
   sum_x <- sum(x)
-  sapply(seq_along(x), function (idx) {
+  res <- sapply(seq_along(x), function (idx) {
     x1 <- x[idx]
     a1 <- alphas[idx]
     fcn(x1, sum_x, a1, sum_a - a1, ...)
   })
+  names(res) <- NULL
+  res
 }
