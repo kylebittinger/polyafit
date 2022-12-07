@@ -92,9 +92,12 @@ feature_enrichment <- function (p) {
     dplyr::group_by(observation) %>%
     dplyr::filter(p$is_included) %>%
     dplyr::mutate(
-      p.value = 1 - ppolya_marginal(counts, p$params, log.p = FALSE)) %>%
+      expected_counts = ppolya_apply(counts, p$params, betabinom_expected),
+      sigma = ppolya_apply(counts, p$params, betabinom_sigma),
+      p.value = ppolya_apply(counts, p$params, betabinom_pval)) %>%
     dplyr::ungroup() %>%
-    dplyr::select(observation, feature, p.value)
+    dplyr::select(
+      observation, feature, counts, expected_counts, sigma, p.value)
 }
 
 #' Plot a \code{pfit} object
