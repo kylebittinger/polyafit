@@ -25,3 +25,31 @@ pbetabinom <- function(k, n, a, b, log.p=TRUE) {
   pbb <- sum(sapply(k, function (x) dbetabinom(0:x, n, a, b, log=FALSE)))
   if (log.p) log(pbb) else pbb
 }
+
+betabinom_pval <- function (k, n, a, b) {
+  1 - pbetabinom(k, n, a, b, log.p = FALSE)
+}
+
+betabinom_mean <- function(n, a, b) {
+  n * a / (a + b)
+}
+
+betabinom_variance <- function (n, a, b) {
+  var_numerator <- n * a * b * (a + b + n)
+  var_denominator <- ((a + b) ^ 2) * (a + b + 1)
+  var_numerator / var_denominator
+}
+
+betabinom_sd <- function (n, a, b) {
+  sqrt(betabinom_variance(n, a, b))
+}
+
+betabinom_expected <- function (k, n, a, b) {
+  betabinom_mean(n, a, b)
+}
+
+betabinom_sigma <- function (k, n, a, b) {
+  bbm <- betabinom_mean(n, a, b)
+  bbsd <- betabinom_sd(n, a, b)
+  (k - bbm) / bbsd
+}
