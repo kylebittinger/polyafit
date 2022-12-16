@@ -25,7 +25,7 @@ test_that("pfit makes an object from a data frame", {
   expect_equal(class(p), "pfit")
 })
 
-test_that("feature_enrichment gives p-values", {
+test_that("feature_enrichment gives correct result", {
   p <- pfit(x)
   pe <- feature_enrichment(p)
   expected_pe <- tibble::tibble(
@@ -35,6 +35,17 @@ test_that("feature_enrichment gives p-values", {
     feature = c(
       "asv1", "asv2", "asv3", "asv4", "asv5",
       "asv1", "asv2", "asv3", "asv4", "asv5"),
+    counts = c(10, 20, 60, 80, 120, 11, 25, 49, 300, 134),
+    expected_counts = c(
+      10.7515761195116, 19.6201486571511, 43.1461800195183,
+      119.898315498794, 96.5837797050247, 19.2416138138845,
+      35.113300527798, 77.2167842418277, 214.576640496118,
+      172.851660920372),
+    sigma = c(
+      -0.086000458349907, 0.0326990083761397, 1.02392105818105,
+      -1.75167260510861, 1.07418102470083, -0.543073663060615,
+      -0.501340185350642, -0.987175411073878, 2.15970141483643,
+      -1.02633457291013),
     p.value = c(
       0.412504752046599, 0.402301175300987, 0.147459692209273,
       0.961683706669587, 0.139743805230948, 0.628205565475373,
