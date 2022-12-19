@@ -8,7 +8,7 @@ date: "2022-12-16"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=FALSE}
 library(tidyverse)
 ```
 
@@ -49,60 +49,46 @@ lungreplicate_samples <- read_tsv("emily_full_reproducability_map_rev1.txt", sho
   filter(sample_type %in% c("BAL", "OralWash")) %>%
   filter(!(subject_id %in% c("Pulm2", "Pulm5", "Pulm6"))) %>% # No replicates
   filter(!(replicate_id %in% "ReAmplification")) %>%
-  mutate(subject_id = if_else(
-    str_starts(subject_id, "Pulm"), 
-    str_replace(subject_id, "^Pulm", "H"),
-    paste0("Tx", subject_id))) %>%
+  mutate(subject_id = str_replace(subject_id, "Pulm", "Pulm ")) %>%
+  mutate(subject_id = if_else(study_group %in% "Transplant", paste("Tx", subject_id), subject_id)) %>%
+  mutate(subject_id = factor(subject_id)) %>%
   mutate(sample_type = str_replace(sample_type, "OralWash", "Oral wash")) %>%
-  mutate(sample_type = str_replace(sample_type, "BAL", "Lung")) %>%
+  mutate(sample_type = str_replace(sample_type, "BAL", "Bronchoalveolar lavage")) %>%
+  mutate(sample_type = fct_relevel(sample_type, "Oral wash")) %>%
+  mutate(replicate_id = str_replace(replicate_id, "ReExtraction", "Re-extraction ")) %>%
+  mutate(study_group = str_replace(study_group, "Transplant", "Lung transplant")) %>%
+  mutate(study_group = factor(study_group)) %>%
   arrange(subject_id, sample_type, replicate_id)
 ```
 
 ```{r}
 lungreplicate_reads <- read_tsv("otu_table_nochimeras.txt", skip = 1, show_col_types = FALSE) %>%
-  rename(otu_id = `#OTU ID`, lineage = `Consensus Lineage`)
-lungreplicate_taxa <- lungreplicate_reads %>%
-  select(otu_id, lineage)
-lungreplicate_reads <- lungreplicate_reads %>%
-  select(-lineage) %>%
-  pivot_longer(-otu_id, names_to = "sample_id", values_to = "reads")
-lungreplicate_taxa <- lungreplicate_taxa %>%
+  rename(otu_num = `#OTU ID`, lineage = `Consensus Lineage`) %>%
+  mutate(otu_id = paste("OTU", otu_num)) %>%
+  mutate(otu_id = fct_reorder(otu_id, otu_num)) %>%
+  select(-otu_num) %>%
   summarise(bind_cols(., split_assignments(lineage))) %>%
   select(-lineage, -Species) %>%
-  mutate(assignment = simplify_assignments(select(., Kingdom:Genus)))
-```
-
-
-Remove extra samples from lungreplicate_reads
-
-```{r}
-lungreplicate_reads <- lungreplicate_reads %>%
-  filter(sample_id %in% lungreplicate_samples$sample_id)
+  filter(!is.na(Phylum)) %>%
+  mutate(assignment = simplify_assignments(select(., Kingdom:Genus))) %>%
+  select(-(Kingdom:Genus)) %>%
+  pivot_longer(-c(otu_id, assignment), names_to = "sample_id", values_to = "reads") %>%
+  select(otu_id, sample_id, reads, assignment) %>%
+  filter(sample_id %in% lungreplicate_samples$sample_id) %>%
+  group_by(otu_id) %>%
+  filter(sum(reads) > 5) %>%
+  ungroup() %>%
+  mutate(otu_id = fct_drop(otu_id))
 ```
 
 ```{r}
 setequal(lungreplicate_samples$sample_id, lungreplicate_reads$sample_id)
 ```
 
-Remove sparse/rare OTUs
-
-```{r}
-lungreplicate_reads <- lungreplicate_reads %>%
-  group_by(otu_id) %>%
-  filter(sum(reads) > 5) %>%
-  ungroup()
-lungreplicate_taxa <- lungreplicate_taxa %>%
-  filter(otu_id %in% lungreplicate_reads$otu_id) %>%
-  filter(!is.na(Phylum))
-lungreplicate_reads <- lungreplicate_reads %>%
-  filter(otu_id %in% lungreplicate_taxa$otu_id)
-```
-
 Plot taxa
 
 ```{r}
 props <- lungreplicate_reads %>%
-  left_join(lungreplicate_taxa, b = "otu_id") %>%
   group_by(sample_id, assignment) %>%
   summarise(reads = sum(reads), .groups = "drop") %>%
   group_by(sample_id) %>%
@@ -137,8 +123,7 @@ props %>%
 ```
 
 ```{r}
-usethis::use_data(lungreplicate_samples)
-usethis::use_data(lungreplicate_reads)
-usethis::use_data(lungreplicate_taxa)
+usethis::use_data(lungreplicate_samples, overwrite = TRUE)
+usethis::use_data(lungreplicate_reads, overwrite = TRUE)
 ```
 
