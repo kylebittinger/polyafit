@@ -10,6 +10,8 @@ Description: This package includes functions for fitting
     observed data to a multivariate Polya distribution.
 Encoding: UTF-8
 Suggests: 
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 RoxygenNote: 7.2.2
@@ -20,3 +22,4 @@ Imports:
 Depends: 
     R (>= 2.10)
 LazyData: true
+VignetteBuilder: knitr

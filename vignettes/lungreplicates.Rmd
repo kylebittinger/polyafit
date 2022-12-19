@@ -1,0 +1,49 @@
+---
+title: "Replicate samples of the oral and lung microbiome"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Replicate samples of the oral and lung microbiome}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tidyverse)
+```
+
+```{r}
+devtools::load_all()
+```
+
+
+```{r}
+mods <- lungreplicate_samples %>%
+  filter(subject_id %in% "Pulm 1") %>%
+  left_join(lungreplicate_reads, by = "sample_id") %>%
+  pivot_wider(
+    c(subject_id, sample_type, sample_id),
+    names_from = otu_id, values_from = reads) %>%
+  nest_by(subject_id, sample_type) %>%
+  mutate(mod = list(pfit(data)))
+```
+
+```{r fig.width=3, fig.height=2}
+invisible(lapply(lapply(mods$mod, plot), print))
+```
+
+```{r}
+pulm1_oral %>%
+  feature_enrichment() %>%
+  group_by(observation) %>%
+  mutate(fdr = p.adjust(p.value, method = "fdr")) %>%
+  ungroup() %>%
+  arrange(p.value)
+```
+
