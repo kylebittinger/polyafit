@@ -20,7 +20,7 @@
     recruited, either "Healthy" or "Lung transplant"}
 }
 
-\code{lungreplicate_samples} is a data frame with 42 rows and 5
+\code{lungreplicate_samples} is a data frame with 19,362 rows and 4
   variables:
 \describe{
   \item{otu_id}{unique identifiers for each operational taxonomic unit (OTU)}
