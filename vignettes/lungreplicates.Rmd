@@ -1,0 +1,202 @@
+---
+title: "Replicate samples of the oral and lung microbiome"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Replicate samples of the oral and lung microbiome}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r libraries, message = FALSE}
+library(tidyverse)
+library(ggsci)
+library(polyafit)
+```
+
+Here, we will use the `polyafit` R package to re-create some of the data
+analysis from the paper "Assessing bacterial populations in the lung by
+replicate analysis of samples from the upper and lower respiratory tracts"
+(PMID 22970118), by Charlson and Bittinger.
+
+This paper presents a set of replicate oral and lung microbiome samples from a
+study of lung transplant recipients. Lung transplant recipients are at risk for
+bacterial infections and a variety of other negative outcomes that involve
+bacteria. The hope in this effort was to use the oral microbiome as a
+personalized standard against which to measure bacterial populations in the
+lung. In this way, bacteria that were over-represented in the lung might be
+highlighted as potential problems.
+
+In people who are relatively healthy, the proportions of bacteria in the lung
+tend to be tightly correlated with those in the oral cavity. Thus, if we
+measure the oral microbiome in a healthy person, we should have a pretty good
+prediction for the lung microbiome. But just how correlated are the bacterial
+populations, and how reliable are repeated measurements of the oral and lung
+microbiota?
+
+## Study overview
+
+Let's take a look at the bacterial populations in the study. We'll re-create
+Figure 2 from the paper. First, we will sum up all the read counts for each
+taxonomic aassignment and convert to relative abundance.
+
+```{r assignments}
+assignment_data <- lungreplicate_reads %>%
+  group_by(sample_id, assignment) %>%
+  summarise(reads = sum(reads), .groups = "drop") %>%
+  group_by(sample_id) %>%
+  mutate(prop = reads / sum(reads)) %>%
+  ungroup()
+```
+
+In setting up the chart, we re-label the taxa that we don't want to color as
+"Other." We also join the table of sample info to help arrange the samples.
+
+```{r plot-assignments, fig.width=7, fig.height=5}
+assignment_data %>%
+  mutate(assignment = fct_lump(assignment, n = 15, w = prop)) %>%
+  left_join(lungreplicate_samples, by = "sample_id") %>%
+  mutate(sample_id = fct_inorder(sample_id)) %>%
+  ggplot() +
+  geom_col(aes(x = replicate_id, y = prop, fill = assignment)) +
+  facet_grid(sample_type ~ subject_id, scales = "free_x", space = "free_x") +
+  ggsci::scale_fill_d3("category20") +
+  labs(y = "Relative abundance", x = "", fill = "") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+## One set of replicate samples
+
+We'd like to quantify the overall level of correspondence between measurements
+for each replicate. To get started with fitting, let's look at just the oral
+microbiota in the first healthy participant in the study, identified as
+"Pulm 1".
+
+To perpare our data, we first select the desired samples from
+`lungreplicate_samples`. Then, we bring in the count data giving the number of
+sequence reads obtained for each bacterial species^[Technically, we use a
+stand-in for bacterial species called an Operational Taxonomic Unit or OTU, but
+let's stick with "species" for simplicity.] from `lungreplicate_reads`. To
+finish the data preparation, we pivot the data so we have one species per
+column and one replicate observation per row.
+
+```{r pulm1-data}
+pulm1_data <- lungreplicate_samples %>%
+  filter(subject_id %in% "Pulm 1", sample_type %in% "Oral wash") %>%
+  left_join(lungreplicate_reads, by = "sample_id") %>%
+  pivot_wider(sample_id, names_from = otu_id, values_from = reads)
+```
+
+Now that our data is in this wide format, we run the fit. This will take a
+few seconds to optimize.
+
+```{r pulm1-fit}
+pulm1_fit <- pfit(pulm1_data)
+```
+
+The fitted result comes with a built-in plot method. Here, we see the second
+and third replicate samples each compared to the first replicate.
+
+```{r pulm1-plot, warning=FALSE, fig.width=5, fig.height=4}
+pulm1_fit %>%
+  plot() +
+  theme_bw()
+```
+
+The proportions of bacterial species are highly correlated. This is reflected
+in a small value for the overdispersion parameter, theta.
+
+```{r pulm1-theta}
+pulm1_fit$theta
+```
+
+## All sets of replicate samples
+
+Let's move on to fit all the replicate sample sets for this study. This will
+take a while to run, so grab a coffee.
+
+```{r all-fit}
+replicate_fits <- lungreplicate_samples %>%
+  slice(1:6) %>%
+  left_join(lungreplicate_reads, by = "sample_id") %>%
+  pivot_wider(
+    c(subject_id, sample_type, sample_id),
+    names_from = otu_id, values_from = reads) %>%
+  nest_by(subject_id, sample_type) %>%
+  mutate(mod = list(pfit(data)))
+```
+
+Now that we're all done fitting, we can look at the overdispersion parameters
+estimated for each set of replicates.
+
+```{r all-theta}
+replicate_fits %>%
+  mutate(theta = mod$theta) %>%
+  select(-data, -mod)
+```
+
+The sample set with the largest overdispersion is the broncoalveolar lavage
+from Pulm 1, so let's plot that out.
+
+```{r all-plot, warning=FALSE, fig.width=5, fig.height=4}
+pulm1_lung_fit <- replicate_fits$mod[[2]]
+pulm1_lung_fit %>%
+  plot() +
+  theme_bw()
+```
+
+The first and third replicates correspond very closely to each other, whereas
+the species abundances in the second replicate vary a bit more.
+
+## Comparing oral and lung samples
+
+Having compared the replicate sample sets, we'll now compare some oral wash and
+lung samples from participants in the study. The pattern is the same as before:
+start with the table of samples, then filter, join, pivot, nest, and fit.
+
+```{r}
+oral_lung_fits <- lungreplicate_samples %>%
+  filter(replicate_id %in% "Initial") %>%
+  left_join(lungreplicate_reads, by = "sample_id") %>%
+  pivot_wider(
+    c(subject_id, sample_id),
+    names_from = otu_id, values_from = reads) %>%
+  nest_by(subject_id) %>%
+  mutate(mod = list(pfit(data)))
+```
+
+The overdispersion between oral and lung samples is in the same range as the
+overdispersion between technical replicates, with the exception of one subject.
+
+```{r}
+oral_lung_fits %>%
+  mutate(theta = mod$theta) %>%
+  select(subject_id, theta)
+```
+
+The overdispersion in subject Tx 26 is larger than that seen in other subjects.
+This is due to a massive over-representation of a single species in the lung.
+
+```{r tx26-plot, warning=FALSE, fig.width=3.7, fig.height=4}
+tx26_fit <- oral_lung_fits$mod[[5]]
+tx26_fit %>%
+  plot() +
+  theme_bw()
+```
+
+Let's run the built-in feature enrichment analysis to identify this species.
+
+```{r}
+tx26_fit %>%
+  feature_enrichment() %>%
+  mutate(fdr = p.adjust(p.value, method = "fdr")) %>%
+  filter(fdr < 0.05)
+```
+

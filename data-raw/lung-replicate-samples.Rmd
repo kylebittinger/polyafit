@@ -1,0 +1,129 @@
+---
+title: "Lung replicates data"
+output: html_document
+date: "2022-12-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+```{r}
+taxonomic_ranks <- c(
+  "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+split_assignments <- function(assignments, ranks=taxonomic_ranks, split=";") {
+  n <- length(ranks)
+  res <- stringr::str_split_fixed(assignments, pattern = split, n)
+  colnames(res) <- ranks
+  res <- tibble::as_tibble(res)
+  dplyr::mutate(res, dplyr::across(dplyr::all_of(ranks), dplyr::na_if, ""))
+}
+simplify_assignments <- function(assignments_df, rank1="Phylum", rank2="Genus") {
+  if (is.character(rank1)) {
+    rank1 <- match(rank1, colnames(assignments_df))
+  }
+  if (is.character(rank2)) {
+    rank2 <- match(rank2, colnames(assignments_df))
+  }
+  apply(assignments_df, 1, function (x) {
+    x <- na.omit(as.character(x))
+    n <- length(x)
+    if (n == 1)     return(x)
+    if (n < rank1)  return(paste(x, collapse=" "))
+    if (n == rank1) return(x[rank1])
+    if (n < rank2)  return(paste(x[rank1], "-", x[length(x)]))
+    return(paste(x[rank1], "-", x[rank2]))
+  })
+}
+```
+
+```{r}
+lungreplicate_samples <- read_tsv("emily_full_reproducability_map_rev1.txt", show_col_types = FALSE) %>%
+  select(
+    sample_id = `#SampleID`, subject_id = SubjectID, replicate_id = Repeat,
+    sample_type = SampleType, study_group = StudyGroup) %>%
+  filter(sample_type %in% c("BAL", "OralWash")) %>%
+  filter(!(subject_id %in% c("Pulm2", "Pulm5", "Pulm6"))) %>% # No replicates
+  filter(!(replicate_id %in% "ReAmplification")) %>%
+  mutate(subject_id = str_replace(subject_id, "Pulm", "Pulm ")) %>%
+  mutate(subject_id = if_else(study_group %in% "Transplant", paste("Tx", subject_id), subject_id)) %>%
+  mutate(subject_id = factor(subject_id)) %>%
+  mutate(sample_type = str_replace(sample_type, "OralWash", "Oral wash")) %>%
+  mutate(sample_type = str_replace(sample_type, "BAL", "Bronchoalveolar lavage")) %>%
+  mutate(sample_type = fct_relevel(sample_type, "Oral wash")) %>%
+  mutate(replicate_id = str_replace(replicate_id, "ReExtraction", "Re-extraction ")) %>%
+  mutate(study_group = str_replace(study_group, "Transplant", "Lung transplant")) %>%
+  mutate(study_group = factor(study_group)) %>%
+  arrange(subject_id, sample_type, replicate_id)
+```
+
+```{r}
+lungreplicate_reads <- read_tsv("otu_table_nochimeras.txt", skip = 1, show_col_types = FALSE) %>%
+  rename(otu_num = `#OTU ID`, lineage = `Consensus Lineage`) %>%
+  mutate(otu_id = paste("OTU", otu_num)) %>%
+  mutate(otu_id = fct_reorder(otu_id, otu_num)) %>%
+  select(-otu_num) %>%
+  summarise(bind_cols(., split_assignments(lineage))) %>%
+  select(-lineage, -Species) %>%
+  filter(!is.na(Phylum)) %>%
+  mutate(assignment = simplify_assignments(select(., Kingdom:Genus))) %>%
+  select(-(Kingdom:Genus)) %>%
+  pivot_longer(-c(otu_id, assignment), names_to = "sample_id", values_to = "reads") %>%
+  select(otu_id, sample_id, reads, assignment) %>%
+  filter(sample_id %in% lungreplicate_samples$sample_id) %>%
+  group_by(otu_id) %>%
+  filter(sum(reads) > 5) %>%
+  ungroup() %>%
+  mutate(otu_id = fct_drop(otu_id))
+```
+
+```{r}
+setequal(lungreplicate_samples$sample_id, lungreplicate_reads$sample_id)
+```
+
+Plot taxa
+
+```{r}
+props <- lungreplicate_reads %>%
+  group_by(sample_id, assignment) %>%
+  summarise(reads = sum(reads), .groups = "drop") %>%
+  group_by(sample_id) %>%
+  mutate(prop = reads / sum(reads)) %>%
+  ungroup()
+```
+
+```{r}
+top_taxa <- props %>%
+  group_by(assignment) %>%
+  summarise(mean_prop = mean(prop), .groups = "drop") %>%
+  slice_max(mean_prop, n = 15)
+```
+
+```{r}
+props %>%
+  mutate(assignment = if_else(assignment %in% top_taxa$assignment, assignment, "Other")) %>%
+  group_by(sample_id, assignment) %>%
+  summarise(prop = sum(prop), .groups = "drop") %>%
+  mutate(assignment = fct_relevel(assignment, "Other", after = Inf)) %>%
+  left_join(lungreplicate_samples, by = "sample_id") %>%
+  arrange(study_group, subject_id, sample_type, replicate_id) %>%
+  mutate(sample_id = fct_inorder(sample_id)) %>%
+  ggplot(aes(x = sample_id, y = prop, fill = assignment)) +
+  geom_col() +
+  facet_grid(~ study_group + subject_id, scales = "free_x", space = "free_x") +
+  ggsci::scale_fill_d3("category20") +
+  guides(fill = guide_legend(ncol = 2)) +
+  labs(y = "Relative abundance", x = "", fill = "") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r}
+usethis::use_data(lungreplicate_samples, overwrite = TRUE)
+usethis::use_data(lungreplicate_reads, overwrite = TRUE)
+```
+

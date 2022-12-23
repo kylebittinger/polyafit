@@ -109,7 +109,7 @@ plot.pfit <- function (p) {
   props <- sweep(p$data, 1, rowSums(p$data), "/")
   props <- props[,p$is_included]
   rownames(props)[1] <- "ref_prop"
-  lower_limit <- min(props) / 2
+  lower_limit <- min(props[props > 0]) / 2
   props %>%
     t() %>% # each row is a feature
     as.data.frame() %>%
