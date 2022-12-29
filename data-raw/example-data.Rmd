@@ -1,0 +1,52 @@
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+as_proportion <- function (x) x / sum(x)
+set.seed(1)
+example_props <- as_proportion(rchisq(50, 2))
+```
+
+```{r}
+set.seed(2)
+polyafit_example_data <- t(cbind(
+  rmultinom(1, 500, example_props),
+  rmultinom(1, 600, example_props),
+  rmultinom(1, 550, example_props)))
+polyafit_example_data[3,4] <- 150
+polyafit_example_data[3,50] <- 1 # To avoid a triple zero for this species
+rownames(polyafit_example_data) <- c("sample_1", "sample_2", "sample_3")
+colnames(polyafit_example_data) <- paste("species", 1:50, sep = "_")
+```
+
+```{r}
+polyafit_example_data
+```
+
+
+```{r}
+p12 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_2"),])
+```
+
+```{r warning=FALSE}
+plot(p12)
+```
+
+```{r}
+p13 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_3"),])
+```
+
+```{r}
+plot(p13)
+```
+
+```{r}
+polyafit::feature_enrichment(p13)
+```
+
+```{r}
+usethis::use_data(polyafit_example_data, overwrite = TRUE)
+```
+
