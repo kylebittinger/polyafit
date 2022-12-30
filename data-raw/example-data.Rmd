@@ -1,0 +1,70 @@
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+as_proportion <- function (x) x / sum(x)
+set.seed(1)
+example_props <- as_proportion(rchisq(50, 2))
+```
+
+```{r}
+set.seed(5)
+polyafit_example_data <- t(cbind(
+  rmultinom(1, 500, example_props),
+  rmultinom(1, 600, example_props),
+  rmultinom(1, 550, example_props)))
+polyafit_example_data[3,4] <- 150
+rownames(polyafit_example_data) <- c("sample_1", "sample_2", "sample_3")
+colnames(polyafit_example_data) <- paste("species", 1:50, sep = "_")
+```
+
+```{r}
+polyafit_example_data
+```
+
+
+```{r}
+fit12 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_2"),])
+```
+
+```{r warning=FALSE}
+fit12 %>%
+  plot()
+```
+
+```{r}
+fit12 %>%
+  polyafit::feature_enrichment() %>%
+  filter(p.value < 0.05)
+```
+
+```{r}
+fit12$theta
+```
+
+```{r}
+fit13 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_3"),])
+```
+
+```{r warning=FALSE}
+fit13 %>%
+  plot()
+```
+
+```{r}
+fit13 %>%
+  polyafit::feature_enrichment() %>%
+  filter(p.value < 0.05)
+```
+
+```{r}
+fit13$theta
+```
+
+
+```{r}
+usethis::use_data(polyafit_example_data, overwrite = TRUE)
+```
+

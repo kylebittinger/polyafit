@@ -16,6 +16,14 @@ created specifically for 16S rRNA marker gene sequence data from the
 human microbiome, but in principle could be applied to other types of
 data.
 
+If you use this software in your research, please cite:
+
+Charlson ES, Bittinger K, Chen J, Diamond JM, Li H, Collman RG, Bushman
+FD. Assessing bacterial populations in the lung by replicate analysis of
+samples from the upper and lower respiratory tracts. PLoS One.
+2012;7(9):e42786. doi: 10.1371/journal.pone.0042786. Epub 2012 Sep 6.
+PMID: 22970118; PMCID: PMC3435383.
+
 ## Installation
 
 You can install polyafit from [GitHub](https://github.com/) with:
@@ -31,153 +39,163 @@ devtools::install_github("kylebittinger/polyafit")
 library(tidyverse)
 ```
 
-We will simulate two samples, and check to see if any features are
-different, based on the distribution of all the features in the samples.
-We assume that most of the features come from the same underlying
-distribution, so we can use the full set of features to estimate the
-amount that feature proportions vary between samples.
-
-First, we’ll generate data for both samples using the same underlying
-distribution. We will randomly generate one set of proportions, using
-the chi-squared distribution. While we’re at it, we’ll create a
-convenience function to turn counts into proportions of the whole.
+We will use a built-in example dataset, `polyafit_example_data`, to
+demonstrate how the package works. The example data is in the form of a
+matrix, with three observations and 50 features. In this example, each
+observation corresponds to a microbiome sample and each feature
+corresponds to a bacterial species. The numbers in the matrix represent
+the number of times each species was observed in the sample. Let’s print
+out the example data to see how it looks.
 
 ``` r
-as_proportion <- function (x) x / sum(x)
-set.seed(1)
-example_props <- as_proportion(rchisq(50, 2))
+polyafit_example_data
+#>          species_1 species_2 species_3 species_4 species_5 species_6 species_7
+#> sample_1         1        24        27         8        10        15        11
+#> sample_2         5        34        23         9        14        13        10
+#> sample_3         1        20        23       150        14        14        12
+#>          species_8 species_9 species_10 species_11 species_12 species_13
+#> sample_1         5         3          0          2          5          0
+#> sample_2         5         0          4         10         13          2
+#> sample_3         4         0          2          2          3          3
+#>          species_14 species_15 species_16 species_17 species_18 species_19
+#> sample_1         15          9         13         13         10         14
+#> sample_2         22         10         25         20         10         18
+#> sample_3         20         17         15          9          8         19
+#>          species_20 species_21 species_22 species_23 species_24 species_25
+#> sample_1         22          3          3          2          3          0
+#> sample_2         16          3          0          8          2          3
+#> sample_3         17          1          2          3          1          3
+#>          species_26 species_27 species_28 species_29 species_30 species_31
+#> sample_1         10          2         26         10          8          2
+#> sample_2         11          2         28         19          3          1
+#> sample_3         10          0         16         16          5          3
+#>          species_32 species_33 species_34 species_35 species_36 species_37
+#> sample_1          6          1         45          9          2          1
+#> sample_2         12          0         50         12          1          0
+#> sample_3         13          1         52         13          3          1
+#>          species_38 species_39 species_40 species_41 species_42 species_43
+#> sample_1         22         32          3          8          6          6
+#> sample_2         25         38          2          6          6          5
+#> sample_3         30         38          5          4          3          9
+#>          species_44 species_45 species_46 species_47 species_48 species_49
+#> sample_1          0         32         34         11          1          5
+#> sample_2          3         42         39         11          1          4
+#> sample_3          3         32         38         20          4          4
+#>          species_50
+#> sample_1          0
+#> sample_2          0
+#> sample_3          1
 ```
 
-Here are the proportions for our example.
+Looking down each column, we can see that the number of counts per
+species is approximately the same for the three samples, except for
+`species_4`. This species seems to be over-represented in `sample_3`
+(150 counts) relative to the other samples (8 and 9 counts).
+
+Our goals are to measure the overall correspondence in species
+abundances between the samples, and then to use this as a yardstick to
+determine if a species is over-represented in one of the samples.
+
+### Analysis: no features enriched
+
+To start, we will select the first two samples and run a fit. When the
+example data set was generated, these samples were drawn from the same
+multinomial distribution. Therefore, we should not detect any features
+that are enriched in one sample relative to the other. Furthermore, we
+expect to observe a high degree of correspondence between the relative
+abundances, or in other words, a low degree of overdispersion relative
+to the multinomial distribution.
+
+We select the two samples by name, giving a matrix with two rows and 50
+columns.
 
 ``` r
-example_props
-#>  [1] 0.0036054870 0.0437470360 0.0419368924 0.0194327787 0.0284119292
-#>  [6] 0.0269201901 0.0230080754 0.0071433596 0.0021989487 0.0036533656
-#> [11] 0.0072231209 0.0108933350 0.0015849072 0.0290335645 0.0234289847
-#> [16] 0.0316283780 0.0280271800 0.0128776484 0.0280507550 0.0363120230
-#> [21] 0.0030392395 0.0050908112 0.0080693898 0.0099922624 0.0033978652
-#> [26] 0.0195615124 0.0056335822 0.0367273382 0.0275453651 0.0090736271
-#> [31] 0.0053704580 0.0225681156 0.0030577414 0.0874843327 0.0190829652
-#> [36] 0.0037387617 0.0022252636 0.0471003005 0.0669509922 0.0063688813
-#> [41] 0.0093611213 0.0109841145 0.0097945730 0.0026154365 0.0577769111
-#> [46] 0.0747475207 0.0207478309 0.0028817161 0.0097441945 0.0001498167
+example12 <- polyafit_example_data[c("sample_1", "sample_2"),]
 ```
 
-Now, we’ll use a multinomial distribution to draw two samples with the
-same underlying proportions. We’ll call these samples lung and OW, to
-represent lung (lung) and oral (oral) microbiome samples from the same
-individual.
-
-Just to demonstrate that our method doesn’t require the same number of
-counts in each sample, we’ll draw a different number of items for each
-sample.
+We find the best-fit parameters of the distribution using the `pfit()`
+function.
 
 ``` r
-lung_cts <- rmultinom(1, 500, example_props)
-oral_cts <- rmultinom(1, 600, example_props)
+fit12 <- example12 %>%
+  pfit()
 ```
 
-Finally, we’ll remove features with fewer than 5 counts total. This
-method does not work well for features that appear sparsely in the
-sample set.
+We can call `plot()` on this object to see a nice plot of the data.
 
 ``` r
-keep <- (lung_cts + oral_cts) >= 5
-lung_cts <- lung_cts[keep]
-oral_cts <- oral_cts[keep]
-```
-
-### Analysis: no outlier
-
-Run an outlier analysis on the counts. Here, the features all come from
-the same underlying distribution, and we expect to see no outliers.
-
-``` r
-tibble(Lung = lung_cts, Oral = oral_cts) %>%
-  mutate(across(everything(), as_proportion)) %>%
-  ggplot(aes(y=Lung, x=Oral)) +
-  geom_point() +
-  geom_abline(slope=1, intercept=0, linetype="dashed") +
-  scale_x_log10() +
-  scale_y_log10() +
-  coord_equal()
+fit12 %>%
+  plot()
 ```
 
 <img src="man/figures/README-no-outlier-1.png" width="100%" />
 
-Raw p-values for each feature. All p-values are &gt; 0.05.
+The `feature_enrichment()` function gives p-values and parameter
+estimates for enrichment of each feature relative to the overall
+distribution. For our first example, all p-values are greater than 0.05.
 
 ``` r
-pfit <- optim_polya(rbind(lung_cts, oral_cts))
-pvals <- 1 - ppolya_marginal(lung_cts, pfit$par, log.p = FALSE)
-pvals
-#>  [1] 0.57594911 0.29223480 0.25754418 0.75969231 0.75420050 0.45033511
-#>  [7] 0.70868359 0.12255148 0.47080502 0.50268617 0.36401274 0.64525371
-#> [13] 0.30713523 0.19694488 0.50823963 0.61460214 0.19874754 0.14448560
-#> [19] 0.39422966 0.39828908 0.25869333 0.08257417 0.33150315 0.25598698
-#> [25] 0.49767320 0.66720092 0.30311445 0.26502399 0.25754418 0.09918343
-#> [31] 0.44970098 0.39828908 0.40133580 0.31393493 0.88334831 0.93138181
-#> [37] 0.27694878 0.49306991 0.47080502
+fit12 %>%
+  feature_enrichment() %>%
+  filter(p.value < 0.05)
+#> # A tibble: 0 × 6
+#> # … with 6 variables: observation <chr>, feature <chr>, counts <dbl>,
+#> #   expected_counts <dbl>, sigma <dbl>, p.value <dbl>
 ```
 
-The fitted object, `pfit`, has a vector of estimated parameter values
-for the Dirichlet-multinomial (DM) distribution, which serves as the
-mathematical model for our data. From the estimated parameter values, we
-can compute an overdispersion parameter, theta. Theta tells us how much
-“extra variance” the estimated distribution has, beyond what we expect
-from a multinomial. Because the data were generated from a perfect
-multinomial distribution, the estimated overdispersion parameter should
-be very small.
+The fitted object comes with an overdispersion parameter, theta. Theta
+tells us how much “extra variance” the estimated distribution has,
+beyond what we expect from a multinomial distribution. Because the data
+here were generated directly from a multinomial distribution, the
+estimated overdispersion parameter should be very small.
 
 ``` r
-1 / sum(pfit$par)
-#> [1] 1.387863e-06
+fit12$theta
+#> [1] 7.575866e-07
 ```
 
 ### Analysis: one outlier
 
-Adjust one of the counts to be different in lung. Put in 150 counts for
-the 4th feature.
+In sample 3, we’ve adjusted one of the species to increase the number of
+counts. We should see this species, `species_4`, to be enriched in our
+analysis.
 
 ``` r
-lung_cts[4] <- 150
+example13 <- polyafit_example_data[c("sample_1", "sample_3"),]
+```
+
+We’ll go through the same sequence of steps to run the fit, plot the
+data, and test for feature enrichment.
+
+``` r
+fit13 <- example13 %>%
+  pfit()
 ```
 
 ``` r
-tibble(Lung = lung_cts, Oral = oral_cts) %>%
-  mutate(across(everything(), as_proportion)) %>%
-  ggplot(aes(y=Lung, x=Oral)) +
-  geom_point() +
-  geom_abline(slope=1, intercept=0, linetype="dashed") +
-  scale_x_log10() +
-  scale_y_log10() +
-  coord_equal()
+fit13 %>%
+  plot()
 ```
 
 <img src="man/figures/README-one-outlier-1.png" width="100%" />
 
-Doing the same analysis, we can see that the p-value for the 4th feature
-is very very low (&lt;&lt; 0.05).
+Here, we can see that the abundance of `species_4` is higher than
+expected, based on the overall distribution.
 
 ``` r
-pfit <- optim_polya(rbind(lung_cts, oral_cts))
-pvals <- 1 - ppolya_marginal(lung_cts, pfit$par, log.p = FALSE)
-pvals
-#>  [1] 7.222374e-01 5.207786e-01 4.444319e-01 5.757440e-09 8.076512e-01
-#>  [6] 5.795736e-01 7.079344e-01 2.759365e-01 5.808243e-01 6.724547e-01
-#> [11] 5.387818e-01 7.240702e-01 5.025280e-01 3.742216e-01 6.508331e-01
-#> [16] 7.455275e-01 3.499326e-01 2.932627e-01 5.204756e-01 5.157665e-01
-#> [21] 4.506156e-01 2.017031e-01 5.532490e-01 4.843211e-01 5.838542e-01
-#> [26] 6.622745e-01 5.084936e-01 6.106616e-01 4.444319e-01 3.362911e-01
-#> [31] 6.662710e-01 5.157665e-01 5.087697e-01 4.767358e-01 8.426012e-01
-#> [36] 9.376779e-01 5.757478e-01 6.211877e-01 5.808243e-01
+fit13 %>%
+  feature_enrichment() %>%
+  filter(p.value < 0.05)
+#> # A tibble: 1 × 6
+#>   observation feature   counts expected_counts sigma       p.value
+#>   <chr>       <chr>      <dbl>           <dbl> <dbl>         <dbl>
+#> 1 sample_3    species_4    150            67.1  6.84 0.00000000863
 ```
 
 Now, we re-calculate the overdispersion parameter, theta. It has
-increased by three orders of magnitude.
+increased by four orders of magnitude.
 
 ``` r
-1 / sum(pfit$par)
-#> [1] 0.001526456
+fit13$theta
+#> [1] 0.00216279
 ```
