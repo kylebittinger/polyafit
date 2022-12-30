@@ -46,72 +46,64 @@ devtools::load_all()
 library(tidyverse)
 ```
 
-We will simulate two samples, and check to see if any features are
-different, based on the distribution of all the features in the samples.  We
-assume that most of the features come from the same underlying distribution, so
-we can use the full set of features to estimate the amount that feature
-proportions vary between samples.
-
-First, we'll generate data for both samples using the same underlying
-distribution.  We will randomly generate one set of proportions, using the
-chi-squared distribution.  While we're at it, we'll create a convenience
-function to turn counts into proportions of the whole.
+We will use a built-in example dataset, `polyafit_example_data`, to demonstrate
+how the package works. The example data is in the form of a matrix, with three
+observations and 50 features. In this example, each observation corresponds to
+a microbiome sample and each feature corresponds to a bacterial species. The
+numbers in the matrix represent the number of times each species was observed
+in the sample. Let's print out the example data to see how it looks.
 
 ```{r}
-as_proportion <- function (x) x / sum(x)
-set.seed(1)
-example_props <- as_proportion(rchisq(50, 2))
+polyafit_example_data
 ```
 
-Here are the proportions for our example.
+Looking down each column, we can see that the number of counts per species is
+approximately the same for the three samples, except for `species_4`. This
+species seems to be over-represented in `sample_3` (150 counts) relative to the
+other samples (8 and 9 counts).
+
+Our goals are to measure the overall correspondence in species abundances
+between the samples, and then to use this as a yardstick to determine if we
+have evidence that a species is over-represented in one of the samples.
+
+
+### Analysis: no features enriched
+
+To start, we will select the first two samples and run a fit. When the example
+data set was generated, these samples were drawn from the same multinomial
+distribution. Therefore, we should not detect any features that are enriched in
+one sample relative to the other. Furthermore, we expect to observe a high
+degree of correspondence between the relative abundances, or in other words, a
+low degree of overdispersion relative to the multinomial distribution.
+
+We select the two samples by name, giving a matrix with two rows and 50
+columns.
 
 ```{r}
-example_props
+example12 <- polyafit_example_data[c("sample_1", "sample_2"),]
 ```
 
-Now, we'll use a multinomial distribution to draw two samples with the same
-underlying proportions.  We'll call these samples lung and OW, to represent
-lung (lung) and oral (oral) microbiome samples from the same individual.
-
-Just to demonstrate that our method doesn't require the same number of counts
-in each sample, we'll draw a different number of items for each sample.
+We find the best-fit parameters of the distribution using the `pfit()`
+function.
 
 ```{r}
-lung_cts <- rmultinom(1, 500, example_props)
-oral_cts <- rmultinom(1, 600, example_props)
+fit12 <- example12 %>%
+  pfit()
 ```
 
-Finally, we'll remove features with fewer than 5 counts total.  This method does
-not work well for features that appear sparsely in the sample set.
+We can call `plot()` on this object to see a nice plot of the data.
 
-```{r}
-keep <- (lung_cts + oral_cts) >= 5
-lung_cts <- lung_cts[keep]
-oral_cts <- oral_cts[keep]
-```
-
-### Analysis: no outlier
-
-Run an outlier analysis on the counts.  Here, the features all come from the
-same underlying distribution, and we expect to see no outliers.
-
-```{r no-outlier}
-tibble(Lung = lung_cts, Oral = oral_cts) %>%
-  mutate(across(everything(), as_proportion)) %>%
-  ggplot(aes(y=Lung, x=Oral)) +
-  geom_point() +
-  geom_abline(slope=1, intercept=0, linetype="dashed") +
-  scale_x_log10() +
-  scale_y_log10() +
-  coord_equal()
+```{r warning=FALSE}
+fit12 %>%
+  plot()
 ```
 
 Raw p-values for each feature.  All p-values are > 0.05.
 
 ```{r}
-pfit <- optim_polya(rbind(lung_cts, oral_cts))
-pvals <- 1 - ppolya_marginal(lung_cts, pfit$par, log.p = FALSE)
-pvals
+fit12 %>%
+  feature_enrichment() %>%
+  filter(p.value < 0.05)
 ```
 
 The fitted object, `pfit`, has a vector of estimated parameter values for the
@@ -123,43 +115,41 @@ the data were generated from a perfect multinomial distribution, the estimated
 overdispersion parameter should be very small. 
 
 ```{r}
-1 / sum(pfit$par)
+fit12$theta
 ```
 
 ### Analysis: one outlier
 
-Adjust one of the counts to be different in lung. Put in 150 counts for the 4th
-feature.
+In sample 3, we've adjusted one of the species to increase the number of
+counts. We should see this species, `species_4`, to be enriched in our
+analysis.
 
 ```{r}
-lung_cts[4] <- 150
+example13 <- polyafit_example_data[c("sample_1", "sample_3"),]
 ```
-
-```{r one-outlier}
-tibble(Lung = lung_cts, Oral = oral_cts) %>%
-  mutate(across(everything(), as_proportion)) %>%
-  ggplot(aes(y=Lung, x=Oral)) +
-  geom_point() +
-  geom_abline(slope=1, intercept=0, linetype="dashed") +
-  scale_x_log10() +
-  scale_y_log10() +
-  coord_equal()
-```
-
-Doing the same analysis, we can see that the p-value for the 4th feature is
-very very low (<< 0.05).
 
 ```{r}
-pfit <- optim_polya(rbind(lung_cts, oral_cts))
-pvals <- 1 - ppolya_marginal(lung_cts, pfit$par, log.p = FALSE)
-pvals
+fit13 <- example13 %>%
+  pfit()
+```
+
+```{r}
+fit13 %>%
+  plot()
+```
+
+
+```{r}
+fit13 %>%
+  feature_enrichment() %>%
+  filter(p.value < 0.05)
 ```
 
 Now, we re-calculate the overdispersion parameter, theta. It has increased by
 three orders of magnitude.
 
 ```{r}
-1 / sum(pfit$par)
+fit13$theta
 ```
 
 
