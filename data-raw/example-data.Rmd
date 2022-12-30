@@ -10,13 +10,12 @@ example_props <- as_proportion(rchisq(50, 2))
 ```
 
 ```{r}
-set.seed(2)
+set.seed(5)
 polyafit_example_data <- t(cbind(
   rmultinom(1, 500, example_props),
   rmultinom(1, 600, example_props),
   rmultinom(1, 550, example_props)))
 polyafit_example_data[3,4] <- 150
-polyafit_example_data[3,50] <- 1 # To avoid a triple zero for this species
 rownames(polyafit_example_data) <- c("sample_1", "sample_2", "sample_3")
 colnames(polyafit_example_data) <- paste("species", 1:50, sep = "_")
 ```
@@ -27,24 +26,43 @@ polyafit_example_data
 
 
 ```{r}
-p12 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_2"),])
+fit12 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_2"),])
 ```
 
 ```{r warning=FALSE}
-plot(p12)
+fit12 %>%
+  plot()
 ```
 
 ```{r}
-p13 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_3"),])
+fit12 %>%
+  polyafit::feature_enrichment() %>%
+  filter(p.value < 0.05)
 ```
 
 ```{r}
-plot(p13)
+fit12$theta
 ```
 
 ```{r}
-polyafit::feature_enrichment(p13)
+fit13 <- polyafit::pfit(polyafit_example_data[c("sample_1", "sample_3"),])
 ```
+
+```{r warning=FALSE}
+fit13 %>%
+  plot()
+```
+
+```{r}
+fit13 %>%
+  polyafit::feature_enrichment() %>%
+  filter(p.value < 0.05)
+```
+
+```{r}
+fit13$theta
+```
+
 
 ```{r}
 usethis::use_data(polyafit_example_data, overwrite = TRUE)
