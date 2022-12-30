@@ -27,6 +27,14 @@ which the package name is derived. The package was created specifically for
 16S rRNA marker gene sequence data from the human microbiome, but in principle
 could be applied to other types of data.
 
+If you use this software in your research, please cite:
+
+Charlson ES, Bittinger K, Chen J, Diamond JM, Li H, Collman RG, Bushman FD.
+Assessing bacterial populations in the lung by replicate analysis of samples
+from the upper and lower respiratory tracts. PLoS One. 2012;7(9):e42786. doi:
+10.1371/journal.pone.0042786. Epub 2012 Sep 6. PMID: 22970118; PMCID:
+PMC3435383.
+
 ## Installation
 
 You can install polyafit from [GitHub](https://github.com/) with:
@@ -63,9 +71,8 @@ species seems to be over-represented in `sample_3` (150 counts) relative to the
 other samples (8 and 9 counts).
 
 Our goals are to measure the overall correspondence in species abundances
-between the samples, and then to use this as a yardstick to determine if we
-have evidence that a species is over-represented in one of the samples.
-
+between the samples, and then to use this as a yardstick to determine if a
+species is over-represented in one of the samples.
 
 ### Analysis: no features enriched
 
@@ -98,7 +105,9 @@ fit12 %>%
   plot()
 ```
 
-Raw p-values for each feature.  All p-values are > 0.05.
+The `feature_enrichment()` function gives p-values and parameter estimates for
+enrichment of each feature relative to the overall distribution. For our first
+example, all p-values are greater than 0.05.
 
 ```{r}
 fit12 %>%
@@ -106,13 +115,11 @@ fit12 %>%
   filter(p.value < 0.05)
 ```
 
-The fitted object, `pfit`, has a vector of estimated parameter values for the
-Dirichlet-multinomial (DM) distribution, which serves as the mathematical model
-for our data. From the estimated parameter values, we can compute an
-overdispersion parameter, theta. Theta tells us how much "extra variance" the
-estimated distribution has, beyond what we expect from a multinomial. Because
-the data were generated from a perfect multinomial distribution, the estimated
-overdispersion parameter should be very small. 
+The fitted object comes with an overdispersion parameter, theta. Theta tells us
+how much "extra variance" the estimated distribution has, beyond what we expect
+from a multinomial distribution. Because the data here were generated directly
+from a multinomial distribution, the estimated overdispersion parameter should
+be very small.
 
 ```{r}
 fit12$theta
@@ -128,6 +135,9 @@ analysis.
 example13 <- polyafit_example_data[c("sample_1", "sample_3"),]
 ```
 
+We'll go through the same sequence of steps to run the fit, plot the data,
+and test for feature enrichment.
+
 ```{r}
 fit13 <- example13 %>%
   pfit()
@@ -138,6 +148,8 @@ fit13 %>%
   plot()
 ```
 
+Here, we can see that the abundance of `species_4` is higher than expected,
+based on the overall distribution.
 
 ```{r}
 fit13 %>%
@@ -146,7 +158,7 @@ fit13 %>%
 ```
 
 Now, we re-calculate the overdispersion parameter, theta. It has increased by
-three orders of magnitude.
+four orders of magnitude.
 
 ```{r}
 fit13$theta
