@@ -100,7 +100,7 @@ fit12 <- example12 %>%
 
 We can call `plot()` on this object to see a nice plot of the data.
 
-```{r warning=FALSE}
+```{r no-outlier, warning=FALSE}
 fit12 %>%
   plot()
 ```
@@ -143,7 +143,7 @@ fit13 <- example13 %>%
   pfit()
 ```
 
-```{r}
+```{r one-outlier, warning=FALSE}
 fit13 %>%
   plot()
 ```

@@ -128,7 +128,7 @@ fit12 %>%
   plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-no-outlier-1.png" width="100%" />
 
 The `feature_enrichment()` function gives p-values and parameter
 estimates for enrichment of each feature relative to the overall
@@ -177,7 +177,7 @@ fit13 %>%
   plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
+<img src="man/figures/README-one-outlier-1.png" width="100%" />
 
 Here, we can see that the abundance of `species_4` is higher than
 expected, based on the overall distribution.
