@@ -83,21 +83,22 @@ make_rownames <- function (df, rownames_in = 1) {
 #' @return A data frame with three columns, giving the observation, the
 #'   feature, and the p-value for enrichment.
 #' @export
+#' @importFrom rlang .data
 feature_enrichment <- function (p) {
   p$data %>%
     as.data.frame() %>%
     tibble::rownames_to_column("observation") %>%
     tidyr::pivot_longer(
-      cols = -observation, names_to = "feature", values_to = "counts") %>%
-    dplyr::group_by(observation) %>%
+      cols = -"observation", names_to = "feature", values_to = "counts") %>%
+    dplyr::group_by(.data$observation) %>%
     dplyr::filter(p$is_included) %>%
     dplyr::mutate(
-      expected_counts = ppolya_apply(counts, p$params, betabinom_expected),
-      sigma = ppolya_apply(counts, p$params, betabinom_sigma),
-      p.value = ppolya_apply(counts, p$params, betabinom_pval)) %>%
+      expected_counts = ppolya_apply(.data$counts, p$params, betabinom_expected),
+      sigma = ppolya_apply(.data$counts, p$params, betabinom_sigma),
+      p.value = ppolya_apply(.data$counts, p$params, betabinom_pval)) %>%
     dplyr::ungroup() %>%
     dplyr::select(
-      observation, feature, counts, expected_counts, sigma, p.value)
+      "observation", "feature", "counts", "expected_counts", "sigma", "p.value")
 }
 
 #' Plot a \code{pfit} object
@@ -116,12 +117,12 @@ plot.pfit <- function (x, ...) {
     as.data.frame() %>%
     tibble::rownames_to_column(var = "feature") %>%
     tidyr::pivot_longer(
-      cols = -c(feature, ref_prop),
+      cols = -c("feature", "ref_prop"),
       names_to = "observation", values_to = "prop") %>%
     ggplot2::ggplot() +
     ggplot2::geom_abline(
       slope = 1, intercept = 0, linetype = "dashed", color = "#333333") +
-    ggplot2::geom_point(ggplot2::aes(x = ref_prop, y = prop)) +
+    ggplot2::geom_point(ggplot2::aes(x = .data$ref_prop, y = .data$prop)) +
     ggplot2::facet_wrap(~ observation) +
     ggplot2::scale_x_log10(limits = c(lower_limit, 1)) +
     ggplot2::scale_y_log10(limits = c(lower_limit, 1)) +

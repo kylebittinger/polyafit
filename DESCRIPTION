@@ -22,7 +22,8 @@ RoxygenNote: 7.3.3
 Imports:
     dplyr,
     magrittr,
-    tibble
+    tibble,
+    rlang
 Depends: 
     R (>= 2.10)
 LazyData: true

@@ -52,7 +52,7 @@ optim_polya <- function(counts, check_runaway=TRUE) {
   }
 
   optim_step <- function(initial_params) {
-    optim(
+    stats::optim(
       initial_params,
       polya_model,
       method="L-BFGS-B",
@@ -177,7 +177,7 @@ optim_polya_precision <- function(counts, alphas) {
     sum(apply(counts, 1, dpolya, alphas))
   }
   
-  res <- optim(
+  res <- stats::optim(
     a0,
     polya_model,
     method="L-BFGS-B",
@@ -199,7 +199,7 @@ optim_polya_proportions <- function(counts, alphas) {
     sum(apply(counts, 1, dpolya, alphas))
   }
 
-  res <- optim(
+  res <- stats::optim(
     ps_alt,
     polya_model,
     method="L-BFGS-B",
@@ -225,7 +225,7 @@ optim_polya_proportions <- function(counts, alphas) {
 
 additive_logistic_transform <- function(xs) {
   # Log ratios to first element
-  log(tail(xs, -1)) - log(xs[1])
+  log(utils::tail(xs, -1)) - log(xs[1])
 }
 
 inverse_additive_logistic_transform <- function(xs) {
