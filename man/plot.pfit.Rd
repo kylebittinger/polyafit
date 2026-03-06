@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{A \code{pfit} object}
+
+\item{...}{Arguments passed to other functions}
 }
 \value{
 A ggplot object

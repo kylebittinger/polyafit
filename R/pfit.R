@@ -102,6 +102,7 @@ feature_enrichment <- function (p) {
 
 #' Plot a \code{pfit} object
 #' @param x A \code{pfit} object
+#' @param ... Arguments passed to other functions
 #' @return A ggplot object
 #' @export
 plot.pfit <- function (x, ...) {
