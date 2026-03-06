@@ -37,3 +37,9 @@
 #'   \item{assignment}{the taxonomic assignment of the OTU}
 #' }
 "lungreplicate_reads"
+
+#' Example data for pfit
+#' @format A matrix with three observations and 50 features. Each observation is
+#' generated from a multinomial distribution with the same underlying feature
+#' probabilities.
+"polyafit_example_data"
