@@ -2,7 +2,8 @@
 % Please edit documentation in R/optim_polya.r
 \name{optim_polya_pingpong}
 \alias{optim_polya_pingpong}
-\title{Find MLE of a multivariate Polya distribution, optimizing mean and precision separately}
+\title{Find MLE of a multivariate Polya distribution, optimizing mean and precision
+separately}
 \usage{
 optim_polya_pingpong(counts, max_iter = 100, tol = 1e-05, max_a0 = 20)
 }
@@ -11,10 +12,15 @@ optim_polya_pingpong(counts, max_iter = 100, tol = 1e-05, max_a0 = 20)
 per trial.}
 
 \item{max_iter}{Maximum number of iterations}
+
+\item{tol}{Tolerance for convergence}
+
+\item{max_a0}{Maximum starting value for the precision}
 }
 \value{
 The result of the final call to optim().
 }
 \description{
-Find MLE of a multivariate Polya distribution, optimizing mean and precision separately
+Find MLE of a multivariate Polya distribution, optimizing mean and precision
+separately
 }

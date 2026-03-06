@@ -40,6 +40,9 @@ dirichlet_precision_wicker <- function(props, min_prop=1e-10, min_value=0.1) {
 #'
 #' @param counts A matrix of observed data, one column per category, one row
 #'   per trial.
+#' @param check_runaway If \code{TRUE}, check to see if elements of the result
+#'   vector are shrinking to zero. If any are detected, the component is
+#'   increased and the model is re-fit.
 #' @return The result of the final call to optim().
 #' @export
 optim_polya <- function(counts, check_runaway=TRUE) {
@@ -49,7 +52,7 @@ optim_polya <- function(counts, check_runaway=TRUE) {
   }
 
   optim_step <- function(initial_params) {
-    optim(
+    stats::optim(
       initial_params,
       polya_model,
       method="L-BFGS-B",
@@ -119,11 +122,14 @@ optim_polya <- function(counts, check_runaway=TRUE) {
 
 }
 
-#' Find MLE of a multivariate Polya distribution, optimizing mean and precision separately
+#' Find MLE of a multivariate Polya distribution, optimizing mean and precision
+#' separately
 #'
 #' @param counts A matrix of observed data, one column per category, one row
 #'   per trial.
 #' @param max_iter Maximum number of iterations
+#' @param tol Tolerance for convergence
+#' @param max_a0 Maximum starting value for the precision
 #' @return The result of the final call to optim().
 #' @export
 optim_polya_pingpong <- function(counts, max_iter=100, tol=1e-5, max_a0=20) {
@@ -171,7 +177,7 @@ optim_polya_precision <- function(counts, alphas) {
     sum(apply(counts, 1, dpolya, alphas))
   }
   
-  res <- optim(
+  res <- stats::optim(
     a0,
     polya_model,
     method="L-BFGS-B",
@@ -193,7 +199,7 @@ optim_polya_proportions <- function(counts, alphas) {
     sum(apply(counts, 1, dpolya, alphas))
   }
 
-  res <- optim(
+  res <- stats::optim(
     ps_alt,
     polya_model,
     method="L-BFGS-B",
@@ -219,7 +225,7 @@ optim_polya_proportions <- function(counts, alphas) {
 
 additive_logistic_transform <- function(xs) {
   # Log ratios to first element
-  log(tail(xs, -1)) - log(xs[1])
+  log(utils::tail(xs, -1)) - log(xs[1])
 }
 
 inverse_additive_logistic_transform <- function(xs) {

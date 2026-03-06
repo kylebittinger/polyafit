@@ -9,6 +9,10 @@ optim_polya(counts, check_runaway = TRUE)
 \arguments{
 \item{counts}{A matrix of observed data, one column per category, one row
 per trial.}
+
+\item{check_runaway}{If \code{TRUE}, check to see if elements of the result
+vector are shrinking to zero. If any are detected, the component is
+increased and the model is re-fit.}
 }
 \value{
 The result of the final call to optim().
