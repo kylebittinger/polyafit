@@ -8,9 +8,9 @@
 \usage{
 pfit(x, min_counts = 5, ...)
 
-\method{pfit}{matrix}(x, min_counts = 5)
+\method{pfit}{matrix}(x, min_counts = 5, ...)
 
-\method{pfit}{data.frame}(x, min_counts = 5, rownames_in = 1)
+\method{pfit}{data.frame}(x, min_counts = 5, rownames_in = 1, ...)
 }
 \arguments{
 \item{x}{A matrix or data frame with one row per observation and column per

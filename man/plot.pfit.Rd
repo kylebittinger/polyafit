@@ -4,10 +4,10 @@
 \alias{plot.pfit}
 \title{Plot a \code{pfit} object}
 \usage{
-\method{plot}{pfit}(p)
+\method{plot}{pfit}(x, ...)
 }
 \arguments{
-\item{p}{A \code{pfit} object}
+\item{x}{A \code{pfit} object}
 }
 \value{
 A ggplot object

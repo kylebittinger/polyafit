@@ -24,7 +24,7 @@ pfit <- function (x, min_counts = 5, ...) {
 #' p$params
 #' p$theta
 #' @export
-pfit.matrix <- function (x, min_counts = 5) {
+pfit.matrix <- function (x, min_counts = 5, ...) {
   if (is.null(rownames(x))) {
     rownames(x) <- paste0("observation", seq_len(nrow(x)))
   }
@@ -50,7 +50,7 @@ pfit.matrix <- function (x, min_counts = 5) {
 #'   name in quotes. Set to \code{NULL} to use the existing rownames of the
 #'   data frame.
 #' @export
-pfit.data.frame <- function (x, min_counts = 5, rownames_in = 1) {
+pfit.data.frame <- function (x, min_counts = 5, rownames_in = 1, ...) {
   x <- make_rownames(x, rownames_in)
   x <- as.matrix(x)
   pfit.matrix(x, min_counts)
@@ -101,13 +101,13 @@ feature_enrichment <- function (p) {
 }
 
 #' Plot a \code{pfit} object
-#' @param p A \code{pfit} object
+#' @param x A \code{pfit} object
 #' @return A ggplot object
 #' @export
-plot.pfit <- function (p) {
-  ref_observation <- rownames(p$data)[1]
-  props <- sweep(p$data, 1, rowSums(p$data), "/")
-  props <- props[,p$is_included]
+plot.pfit <- function (x, ...) {
+  ref_observation <- rownames(x$data)[1]
+  props <- sweep(x$data, 1, rowSums(x$data), "/")
+  props <- props[,x$is_included]
   rownames(props)[1] <- "ref_prop"
   lower_limit <- min(props[props > 0]) / 2
   props %>%
